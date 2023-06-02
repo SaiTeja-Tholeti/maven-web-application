@@ -10,6 +10,7 @@ pipeline{
       sonar_password = 'admin'
       nexus_url = '172.31.9.227:8081'
       artifact_version = '4.0.0'
+    
       }
  
  parameters {
@@ -28,7 +29,7 @@ pipeline{
      stage('Git clone'){
          steps{
              git branch: '${Branch}',
-             url: 'https://github.com/SaiTeja-Tholeti/anujdevopslearn-MavenBuild.git'
+             url: 'https://github.com/SaiTeja-Tholeti/maven-web-application.git'
          }
      }
      
@@ -37,8 +38,8 @@ pipeline{
              sh 'mvn clean package'
          }
      }
-    
-   stage ('Sonarqube Analysis'){
+     
+     stage ('Sonarqube Analysis'){
            steps {
            withSonarQubeEnv('Sonarqube') {
            sh 'mvn -e -B sonar:sonar -Dsonar.java.source=1.8 -Dsonar.host.url="${sonar_url}" -Dsonar.login="${sonar_username}" -Dsonar.password="${sonar_password}" -Dsonar.sourceEncoding=UTF-8'
@@ -54,7 +55,7 @@ pipeline{
        def qualitygate = waitForQualityGate()
          if (qualitygate.status != 'OK') 
              {
-            error "Pipeline aborted due to gatr failure: ${qualitygate.status}"
+            error "Pipeline aborted due to gate failure: ${qualitygate.status}"
               }
             }
         }
@@ -62,8 +63,9 @@ pipeline{
 
 stage ('Publish Artifact') {
         steps {
-          nexusArtifactUploader artifacts: [[artifactId: 'java-example', classifier: '', file: "target/java-example.war", type: 'war']], credentialsId: 'cred-nexus', groupId: 'com.java.example', nexusUrl: "${nexus_url}", nexusVersion: 'nexus3', protocol: 'http', repository: 'release', version: "${artifact_version}"
+          nexusArtifactUploader artifacts: [[artifactId: 'maven-web-application', classifier: '', file: "target/Landmark.war", type: 'war']], credentialsId: 'cred-nexus', groupId: 'com.mt', nexusUrl: "${nexus_url}", nexusVersion: 'nexus3', protocol: 'http', repository: 'release', version: "${artifact_version}"
         }
       }
+
  }
 }
