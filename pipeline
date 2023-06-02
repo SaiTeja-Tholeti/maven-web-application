@@ -1,0 +1,69 @@
+pipeline{
+ agent {
+     label 'master'
+ }   
+
+  environment {
+
+      sonar_url = 'http://172.31.8.145:9000'
+      sonar_username = 'admin'
+      sonar_password = 'admin'
+      nexus_url = '172.31.9.227:8081'
+      artifact_version = '4.0.0'
+      }
+ 
+ parameters {
+        choice(
+        name: 'Branch',
+        choices: ['master'],
+        description: 'Please choose any branch to build' )
+ }
+
+ tools{
+     jdk 'Java'
+     maven 'Maven'
+ }
+ 
+ stages{
+     stage('Git clone'){
+         steps{
+             git branch: '${Branch}',
+             url: 'https://github.com/SaiTeja-Tholeti/anujdevopslearn-MavenBuild.git'
+         }
+     }
+     
+     stage('Build'){
+         steps{
+             sh 'mvn clean package'
+         }
+     }
+    
+   stage ('Sonarqube Analysis'){
+           steps {
+           withSonarQubeEnv('Sonarqube') {
+           sh 'mvn -e -B sonar:sonar -Dsonar.java.source=1.8 -Dsonar.host.url="${sonar_url}" -Dsonar.login="${sonar_username}" -Dsonar.password="${sonar_password}" -Dsonar.sourceEncoding=UTF-8'
+           }
+         }
+      }
+      
+   stage ("Quality Gate")
+{
+   steps{
+     sleep(30)
+      script {
+       def qualitygate = waitForQualityGate()
+         if (qualitygate.status != 'OK') 
+             {
+            error "Pipeline aborted due to gatr failure: ${qualitygate.status}"
+              }
+            }
+        }
+}   
+
+stage ('Publish Artifact') {
+        steps {
+          nexusArtifactUploader artifacts: [[artifactId: 'java-example', classifier: '', file: "target/java-example.war", type: 'war']], credentialsId: 'cred-nexus', groupId: 'com.java.example', nexusUrl: "${nexus_url}", nexusVersion: 'nexus3', protocol: 'http', repository: 'release', version: "${artifact_version}"
+        }
+      }
+ }
+}
